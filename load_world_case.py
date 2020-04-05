@@ -53,3 +53,5 @@ df_world_cases['Active_Cases'] = df_world_cases.apply(lambda x: x['Confirmed'] -
 
 # export csv
 df_world_cases.to_csv('./data/covid19_world_cases.csv', index=False, encoding='utf-8')
+last_date =df_world_cases['Date'].max().strftime('%Y%m%d')
+df_world_cases.to_csv('./data/bk/%s_covid19_world_cases.csv' % last_date, index=False, encoding='utf-8')
