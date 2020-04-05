@@ -18,6 +18,10 @@ def load_json(filename):
         return json.load(json_file)
 
 
+def convert_text_to_datetime(x):
+    return datetime.strptime(x, '%Y-%m-%d %H:%M:%S')
+
+
 # update data from covid19.th-stat
 url_today = 'https://covid19.th-stat.com/api/open/today'
 url_timeline = 'https://covid19.th-stat.com/api/open/timeline'
@@ -49,14 +53,42 @@ write_json(timeline, '%s_covid19_th_timeline.json' % last_date)
 write_json(area, '%s_covid19_th_area.json' % last_date)
 write_json(cases_sum, '%s_covid19_th_cases_sum.json' % last_date)
 
-timeline['df'] = pd.DataFrame(timeline['Data'])
-cases['df'] = pd.DataFrame(cases['Data'])
-area['df'] = pd.DataFrame(area['Data'])
-
 # load local data
 load_date = '20200404'
 cases = load_json('%s_covid19_th_cases.json' % load_date)
 timeline = load_json('%s_covid19_th_timeline.json' % load_date)
 area = load_json('%s_covid19_th_area.json' % load_date)
 
+# create cases df
 df_cases = pd.DataFrame(cases['Data'])
+df_cases['ConfirmDate'] = df_cases['ConfirmDate'].apply(convert_text_to_datetime)
+
+# pivot provinceId & confirmDate
+df_province_timeline = pd.pivot_table(df_cases, values=['No'],
+                                      index=['ProvinceId', 'ConfirmDate'], aggfunc='count')
+# rename column
+df_province_timeline.columns = ['NewCases']
+
+
+# add missing date
+idx0 = df_cases['ProvinceId'].unique()
+idx1 = pd.date_range('2020-01-22', '2020-04-04')
+midx = pd.MultiIndex.from_product([idx0, idx1], names=['ProvinceId', 'ConfirmDate'])
+df_province_timeline = df_province_timeline.reindex(midx, fill_value=0)
+df_province_timeline = df_province_timeline.sort_values(by=['ProvinceId', 'ConfirmDate'])
+
+# find total confirm cases for each province
+df_province_timeline['TotalConfirmCases'] = df_province_timeline.groupby(level=0)['No'].cumsum()
+df_province_timeline = df_province_timeline.reset_index()
+
+# add label for provinceId
+# create master province
+province_detail = ['ProvinceId','Province','ProvinceEn']
+master_province = df_cases.drop_duplicates(province_detail)[province_detail]
+df_province_timeline.merge(master_province, left_on=['ProvinceId'], right_on=['ProvinceId'])
+col_prov = ['ProvinceId','Province','ProvinceEn','ConfirmDate','NewCases','TotalConfirmCases']
+df_province_timeline = df_province_timeline.merge(master_province, left_on=['ProvinceId'], right_on=['ProvinceId'])
+df_province_timeline = df_province_timeline[col_prov]
+
+# export csv
+df_province_timeline.to_csv('./data/covid19_thai_province_timeline.csv', encoding='utf-8')
