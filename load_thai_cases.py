@@ -13,31 +13,40 @@ url_cases_sum = 'https://covid19.th-stat.com/api/open/cases/sum'
 url_area = 'https://covid19.th-stat.com/api/open/area'
 
 # update local data
+# TODO: backup load data to local with .gitignore
 now = datetime.now()
 now_str = now.strftime('%Y%m%d')
 
+
+def write_json(json_data, filename):
+    with open('./data/' + filename, 'w') as json_file:
+        json.dump(json_data, json_file)
+    with open('./data/bk/' + filename, 'w') as json_file:
+        json.dump(json_data, json_file)
+    return print('Saved: ' + filename)
+
+
+def load_json(filename):
+    with open('./data/' + filename) as json_file:
+        return json.load(json_file)
+
+
 cases = requests.get(url_cases).json()
-with open('./data/%s_covid19_th_cases.json' % (now_str), 'w') as json_file:
-    json.dump(cases, json_file)
+write_json(cases, '%s_covid19_th_cases.json' % now_str)
 
 timeline = requests.get(url_timeline).json()
-with open('./data/%s_covid19_th_timeline.json' % (now_str), 'w') as json_file:
-    json.dump(timeline, json_file)
+write_json(timeline, '%s_covid19_th_timeline.json' % now_str)
 
 area = requests.get(url_cases).json()
-with open('./data/%s_covid19_th_area.json' % (now_str), 'w') as json_file:
-    json.dump(area, json_file)
+write_json(area, '%s_covid19_th_area.json' % now_str)
 
 timeline['df'] = pd.DataFrame(timeline['Data'])
 cases['df'] = pd.DataFrame(cases['Data'])
 area['df'] = pd.DataFrame(area['Data'])
 
 # load local data
-with open('./data/%s_covid19_th_cases.json' % (now_str)) as json_file:
-    cases = json.load(json_file)
-with open('./data/%s_covid19_th_timeline.json' % (now_str)) as json_file:
-    timeline = json.load(json_file)
-with open('./data/%s_covid19_th_area.json' % (now_str)) as json_file:
-    area = json.load(json_file)
+cases = load_json('%s_covid19_th_cases.json' % now_str)
+timeline = load_json('%s_covid19_th_timeline.json' % now_str)
+area = load_json('%s_covid19_th_area.json' % now_str)
 
 # df = pd.DataFrame(data['Data'])
