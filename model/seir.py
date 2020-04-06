@@ -2,50 +2,8 @@ from datetime import datetime
 import pandas as pd
 import numpy as np
 
-# Data preparation
-assumption = {
-    'avg_weight': 60  # น้ำหนักเฉลี่ยประชากรในพื้นที่
-}
 
-resource_consumption = {
-    # facility
-    'p_aiir': 0.05,  # % % การใช้ห้อง negative pressure ที่ใช้จากจำนวนผู้ป่วยติดเชื้อ
-
-    # machine
-    'p_vent': 1,  # % การใช้ ventilators จากจำนวนผู้ป่วย ICU
-    'p_ecmo': 0.5,  # % การใช้ ECMO จากจำนวนผู้ป่วย ICU
-    'rate_ct_scan': 2,  # CT-Scan ตรวจได้ชั่วโมงกี่คน
-    'rate_cxr': 6,  # Chest X-Ray ตรวจได้ชั่วโมงละกี่คน
-    'd_pcr': 6,  # Lab PCR ใช้ระยะเวลาตรวจ case ละกี่ชั่วโมง
-
-    # material
-    'favipiravir_tab': 200,  # mg
-    'lopinavir_tab': 200,  # mg
-    'darunavir_tab': 600,  # mg
-    'ritonavir_tab': 50,  # mg
-    'chloroquine_tab': 250,  # mg
-    'ppe_used_per_shift_per_staff': 1,  # เจ้าหน้าที่เปลี่ยน PPE Set กะละกี่ครั้ง
-    'ppe_used_per_swab': 1,  # จำนวน PPE Set ที่ใช้ในการ Swab
-
-    # จำนวน PPE Set ที่ใช้ในการติดตั้งเครื่องช่วยหายใจ
-    'ppe_used_per_install_venti': 1,
-    'ppe_used_per_suction': 1,  # จำนวน PPE Set ที่ใช้ในการทำ Suction
-    'icu_suction_times': 9,  # จำนวนครั้งการทำ suction ของผู้ป่วยที่ใช้เครื่องช่วยหายใจ
-
-    # man
-    'staff_shift_workshour': 8,  # จำนวนชั่วโมงทำงานของเจ้าหน้าที่ใน 1 กะ
-    'staff_nurse_icu_per_pt': (24 * 1) / 2,
-
-    # (จำนวนชั่วโมงทำงาน*จำนวนบุคลากรในทีม)/จำนวนผู้ป่วยที่ดูแล
-    'staff_nurse_aid_icu_per_pt': (24 * 1) / 2,
-    # drug
-    'favipiravir_first_used': 8,
-    'faviriravir_census_used': 3,
-
-}
-
-
-def get_default():
+def get_default_params():
     params = {'d_incubation': 6.1,
               'd_infectious': 2.3,
               'd_test': 2,
@@ -305,6 +263,9 @@ def summarize_seir(seir_df):
     )
     summary_df['total_confirm_cases'] = summary_df['active_cases'] + summary_df['recovered'] + summary_df['death']
     summary_df['new_cases'] = seir_df['new_hos_mild'] + seir_df['new_hos_severe'] + seir_df['new_hos_critical']
+    summary_df['new_active_cases'] = summary_df['active_cases'].diff()
+    summary_df['new_recovered'] = summary_df['recovered'].diff()
+    summary_df['new_death'] = summary_df['death'].diff()
     summary_df['pui'] = seir_df['pui']
     summary_df['s'] = seir_df['s']
     summary_df['e'] = seir_df['e']
@@ -313,149 +274,6 @@ def summarize_seir(seir_df):
     return summary_df
 
 
-def transform_seir(seir_df, params, hopital_market_share):
-    hos_load_df = pd.DataFrame()
-    hos_load_df['date'] = seir_df['date']
-    hos_load_df['pt_hos_eod_mild'] = hopital_market_share * seir_df['hos_mild']
-    hos_load_df['pt_hos_eod_severe'] = hopital_market_share * \
-                                       seir_df['hos_severe']
-    hos_load_df['pt_hos_eod_critical'] = hopital_market_share * (
-            seir_df['hos_critical'] + seir_df['hos_fatal'])
-    hos_load_df['pt_hos_new_mild'] = hopital_market_share * \
-                                     seir_df['new_hos_mild']
-    hos_load_df['pt_hos_new_severe'] = hopital_market_share * \
-                                       seir_df['new_hos_severe']
-    hos_load_df['pt_hos_new_critical'] = hopital_market_share * \
-                                         seir_df['new_hos_critical']
-    hos_load_df['pt_hos_neg_cases'] = hopital_market_share * seir_df['new_pui'] / (
-            1 - params['p_test_positive'])
-    hos_load_df['pt_hos_pui'] = hopital_market_share * seir_df[
-        'pui'] * 1  # TODO: add parameter to adjust % of pui admit
-
-    return hos_load_df
-
-
-def project_resource(df, resource_consumption):
-    resources_name = [
-        'icu_bed',
-        'hospital_bed',
-        'ppe_gloves'
-    ]
-    resources_df = pd.DataFrame()
-    resources_df['date'] = df['date']
-    # icu
-    resources_df['bed_icu'] = round(df['pt_hos_eod_critical'], 0)
-    resources_df['aiir'] = round(
-        (df['pt_hos_eod_mild'] + df['pt_hos_eod_severe'] + df['pt_hos_eod_critical']) * resource_consumption[
-            'p_aiir'], 0)
-    resources_df['venti'] = round(
-        resources_df['bed_icu'] * resource_consumption['p_vent'], 0)
-    resources_df['ecmo'] = round(resources_df['bed_icu'] * resource_consumption['p_ecmo'], 0)
-
-    # hos
-    resources_df['bed_hos'] = round(
-        df['pt_hos_eod_severe'] + df['pt_hos_eod_mild'], 0)
-    resources_df['ppe_gloves'] = round(
-        df['pt_hos_eod_mild'] * 3
-        + df['pt_hos_eod_severe'] * 6
-        + df['pt_hos_eod_critical'] * 14
-    )
-
-    # man
-    resources_df['staff_nurse_icu'] = round(
-        resources_df['bed_icu'] * resource_consumption['staff_nurse_icu_per_pt'] / resource_consumption[
-            'staff_shift_workshour'], 0)
-    resources_df['staff_nurse_aid_icu'] = round(
-        resources_df['bed_icu'] * resource_consumption['staff_nurse_aid_icu_per_pt'] / resource_consumption[
-            'staff_shift_workshour'], 0)
-
-    # material
-    # favipiravir
-    resources_df['drug_favipiravir_first_dose'] = resource_consumption['favipiravir_first_used'] * (
-            df['pt_hos_new_severe'] + df['pt_hos_new_critical'])
-    s_cumsum = df['pt_hos_new_severe'].cumsum()
-    s_diff = pd.Series([0] * 5).append(s_cumsum)[:len(s_cumsum)].reset_index(drop=True)
-    df['pt_hos_severe_first_5day'] = s_cumsum - s_diff
-    s_cumsum = df['pt_hos_new_critical'].cumsum()
-    s_diff = pd.Series([0] * 10).append(s_cumsum)[:len(s_cumsum)].reset_index(drop=True)
-    df['pt_hos_critical_first_10day'] = s_cumsum - s_diff
-    resources_df['drug_favipiravir_census_dose'] = resource_consumption['faviriravir_census_used'] * (
-            df['pt_hos_severe_first_5day'] + df['pt_hos_critical_first_10day'])
-    resources_df['drug_favipiravir'] = resources_df['drug_favipiravir_first_dose'] + resources_df[
-        'drug_favipiravir_census_dose']
-    # chloroquine
-    # test kit
-
-    return resources_df
-
-
-def prepare_input(user_input):
-    default_params = get_default()
-    user_input['start_date'] = pd.to_datetime(
-        user_input.get('start_date', default_params['today']))
-    user_input['social_distancing'] = [
-        float(user_input.get('social_distancing',
-                             default_params['social_distancing_rate'])),
-        float(user_input.get('social_distancing_start',
-                             default_params['social_distance_day_start'])),
-        float(user_input.get('social_distancing_end',
-                             default_params['social_distance_day_end']))
-    ]
-    user_input['regional_population'] = user_input.get(
-        'regional_population', default_params['regional_population'])
-    user_input['hospital_market_share'] = user_input.get(
-        'hospital_market_share', default_params['hospital_market_share'])
-    user_input['doubling_time'] = user_input.get(
-        'doubling_time', default_params['doubling_time'])
-    user_input['doubling_time'] = user_input.get(
-        'doubling_time', default_params['doubling_time'])
-    user_input['critical_cases'] = user_input.get(
-        'critical_cases', default_params['critical_cases'])
-    user_input['death'] = user_input.get(
-        'death', default_params['death'])
-    return user_input, default_params
-
-
 def recent_cases_to_doubling_time(recent_cases, period=0):
-    if period == 0 or period > len(recent_cases) : period = len(recent_cases)
+    if period == 0 or period > len(recent_cases): period = len(recent_cases)
     return period * (np.log(2) / np.log(recent_cases[0] / recent_cases[period - 1]))
-
-
-def seir_estimation(params, initial_data, user_input):
-    predict_step = int(user_input.get('steps', params['steps']))
-    hospital_market_share = float(user_input.get(
-        'hospital_market_share', params['hospital_market_share']))
-
-    SEIR_df = SEIR(params, initial_data, predict_step)
-
-    hos_load_df = transform_seir(
-        SEIR_df, params, hospital_market_share)
-    resource_projection_df = project_resource(
-        hos_load_df, resource_consumption)
-
-    return SEIR_df, hos_load_df, resource_projection_df
-
-
-def seir_df_to_json(seir_df, resource_df):
-    seir_json = seir_df.set_index('date').to_json(
-        orient='split', date_format='iso')
-    resource_json = resource_df.set_index(
-        'date').to_json(orient='split', date_format='iso')
-    return seir_json, resource_json
-
-
-## user input
-user_input = {
-    "doubling_time": 7.5,
-    "social_distancing": 0,
-    "social_distancing_start": 0,
-    "social_distancing_end": 1,
-    "hospital_market_share": 1,
-    "start_date": "2020-04-05",
-    "steps": 300,
-    "regional_population": 66558935,
-    "total_confirm_cases": 2169,
-    "active_cases": 1353,
-    "critical_cases": 23,
-    "death": 23
-}
