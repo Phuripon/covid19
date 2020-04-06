@@ -22,7 +22,7 @@ def convert_text_to_datetime(x):
     return datetime.strptime(x, '%Y-%m-%d %H:%M:%S')
 
 
-is_update = True
+is_update = False
 
 # update data from covid19.th-stat
 if is_update:
@@ -91,6 +91,11 @@ df_province_timeline.merge(master_province, left_on=['ProvinceId'], right_on=['P
 col_prov = ['ProvinceId', 'Province', 'ProvinceEn', 'ConfirmDate', 'NewCases', 'TotalConfirmCases']
 df_province_timeline = df_province_timeline.merge(master_province, left_on=['ProvinceId'], right_on=['ProvinceId'])
 df_province_timeline = df_province_timeline[col_prov]
+
+# add area health
+df_thai_province = pd.read_excel('./data/thai_province.xlsx', sheet_name='province')
+df_thai_province = df_thai_province[['Prov_Name_En', 'Region', 'Area Health', 'Population']]
+df_province_timeline = df_province_timeline.join(df_thai_province.set_index('Prov_Name_En'), on='ProvinceEn')
 
 # export csv
 df_province_timeline.to_csv('./result/covid19_thai_province_timeline.csv', encoding='utf-8')
