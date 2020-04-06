@@ -44,6 +44,69 @@ def get_default_params():
     return params
 
 
+def gen_initial(params, user_input):
+    doubling_time = int(user_input.get(
+        'doubling_time', params['doubling_time']))
+    total_confirm_cases = int(user_input.get(
+        'total_confirm_cases', params['total_confirm_cases']))
+    regional_population = int(user_input.get(
+        'regional_population', params['regional_population']))
+
+    active_cases = int(user_input['active_cases'])
+    death = int(user_input.get(
+        'death', params['death']))
+
+    growth = 2 ** (1 / doubling_time) - 1
+    gamma = 1 / params['d_infectious']
+    sigma = 1 / params['d_incubation']
+    pui = growth * total_confirm_cases * params['d_test']
+    i = pui * (growth + (1 / params['d_test'])) / gamma
+    e = i * (growth + gamma) / sigma
+    beta = (growth + gamma) * (growth + sigma) / sigma
+    r0 = beta / gamma
+    s = regional_population - \
+        total_confirm_cases - pui - i - e
+
+    # update params
+    params['r0'] = r0
+    params['n'] = regional_population
+    params['social_distancing_rate'] = user_input['social_distancing']
+
+    # create initial data for start date
+    recover = total_confirm_cases - \
+              active_cases - death
+    initial_data = {
+        'date': user_input['start_date'],
+        's': s,
+        'e': e,
+        'i': i,
+        'pui': pui,
+        # TODO: check this ตอนแรกเยอะเกินไปหรือเปล่า
+        'hos_mild': params['p_mild'] * active_cases,
+        'hos_severe': params['p_severe'] * active_cases,
+        'hos_critical': params['p_critical'] * active_cases,
+        'hos_fatal': params['cfr'] * active_cases,
+        'home_mild': 0,
+        'home_severe': 0,
+        'hotel_mild': 0,
+        'hotel_severe': 0,
+        'r_mild_hos': params['p_mild'] * recover,
+        'r_mild_home': 0,
+        'r_mild_hotel': 0,
+        'r_severe_hos': params['p_severe'] * recover,
+        'r_severe_home': 0,
+        'r_severe_hotel': 0,
+        'r_critical_hos': (params['p_critical'] + params['cfr']) * recover,
+        'death': death,
+        'new_hos_mild': 0,
+        'new_hos_severe': 0,
+        'new_hos_critical': 0,
+        'new_pui': 0
+    }
+
+    return initial_data, params
+
+
 def SEIR(params, initial_data, steps=1):
     # do thing
     time_series = pd.DataFrame([initial_data.values()], columns=list(initial_data.keys()))
@@ -174,68 +237,6 @@ def get_differentials(params, sod, day=0):
             diff_r_severe_home, diff_r_severe_hotel, diff_r_critical, diff_death,
             new_hos_mild, new_hos_severe, new_hos_critical, new_pui]
 
-
-def gen_initial(params, user_input):
-    doubling_time = int(user_input.get(
-        'doubling_time', params['doubling_time']))
-    total_confirm_cases = int(user_input.get(
-        'total_confirm_cases', params['total_confirm_cases']))
-    regional_population = int(user_input.get(
-        'regional_population', params['regional_population']))
-
-    active_cases = int(user_input['active_cases'])
-    death = int(user_input.get(
-        'death', params['death']))
-
-    growth = 2 ** (1 / doubling_time) - 1
-    gamma = 1 / params['d_infectious']
-    sigma = 1 / params['d_incubation']
-    pui = growth * total_confirm_cases * params['d_test']
-    i = pui * (growth + (1 / params['d_test'])) / gamma
-    e = i * (growth + gamma) / sigma
-    beta = (growth + gamma) * (growth + sigma) / sigma
-    r0 = beta / gamma
-    s = regional_population - \
-        total_confirm_cases - pui - i - e
-
-    # update params
-    params['r0'] = r0
-    params['n'] = regional_population
-    params['social_distancing_rate'] = user_input['social_distancing']
-
-    # create initial data for start date
-    recover = total_confirm_cases - \
-              active_cases - death
-    initial_data = {
-        'date': user_input['start_date'],
-        's': s,
-        'e': e,
-        'i': i,
-        'pui': pui,
-        # TODO: check this ตอนแรกเยอะเกินไปหรือเปล่า
-        'hos_mild': params['p_mild'] * active_cases,
-        'hos_severe': params['p_severe'] * active_cases,
-        'hos_critical': params['p_critical'] * active_cases,
-        'hos_fatal': params['cfr'] * active_cases,
-        'home_mild': 0,
-        'home_severe': 0,
-        'hotel_mild': 0,
-        'hotel_severe': 0,
-        'r_mild_hos': params['p_mild'] * recover,
-        'r_mild_home': 0,
-        'r_mild_hotel': 0,
-        'r_severe_hos': params['p_severe'] * recover,
-        'r_severe_home': 0,
-        'r_severe_hotel': 0,
-        'r_critical_hos': (params['p_critical'] + params['cfr']) * recover,
-        'death': death,
-        'new_hos_mild': 0,
-        'new_hos_severe': 0,
-        'new_hos_critical': 0,
-        'new_pui': 0
-    }
-
-    return initial_data, params
 
 
 def summarize_seir(seir_df):

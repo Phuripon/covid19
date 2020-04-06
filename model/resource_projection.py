@@ -66,7 +66,7 @@ def transform_seir(seir_df, params, hopital_market_share):
     return hos_load_df
 
 
-def project_resource(df, resource_consumption):
+def project_resource(df, resource_consumption=get_resource_consumption()):
     resources_name = [
         'icu_bed',
         'hospital_bed',
@@ -86,11 +86,6 @@ def project_resource(df, resource_consumption):
     # hos
     resources_df['bed_hos'] = round(
         df['pt_hos_eod_severe'] + df['pt_hos_eod_mild'], 0)
-    resources_df['ppe_gloves'] = round(
-        df['pt_hos_eod_mild'] * 3
-        + df['pt_hos_eod_severe'] * 6
-        + df['pt_hos_eod_critical'] * 14
-    )
 
     # man
     resources_df['staff_nurse_icu'] = round(
@@ -101,6 +96,13 @@ def project_resource(df, resource_consumption):
             'staff_shift_workshour'], 0)
 
     # material
+    # TODO: resources_df['ppe_mask']
+    # TODO: resources_df['ppe_cover_all']
+    resources_df['ppe_gloves'] = round(
+        df['pt_hos_eod_mild'] * 3
+        + df['pt_hos_eod_severe'] * 6
+        + df['pt_hos_eod_critical'] * 14
+    )
     # favipiravir
     resources_df['drug_favipiravir_first_dose'] = resource_consumption['favipiravir_first_used'] * (
             df['pt_hos_new_severe'] + df['pt_hos_new_critical'])

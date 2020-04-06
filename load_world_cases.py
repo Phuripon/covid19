@@ -50,6 +50,7 @@ df_world_cases['Active_Cases'] = df_world_cases.apply(lambda x: x['Confirmed'] -
 # sample['New_Cases'] = sample['Confirmed'].diff().map(lambda x: np.nan if x < 0 else x)
 # sample['Confirmed'].diff()
 
+# TODO: compute doubling time for total confirm cases & death & recovered
 
 # export csv
 df_world_cases.to_csv('./data/covid19_world_cases.csv', index=False, encoding='utf-8')
