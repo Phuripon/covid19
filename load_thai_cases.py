@@ -7,9 +7,9 @@ from datetime import datetime
 
 def write_json(json_data, filename):
     with open('./data/' + filename[9:], 'w') as json_file:
-        json.dump(json_data, json_file)
+        json.dump(json_data, json_file, indent=4)
     with open('./data/bk/' + filename, 'w') as json_file:
-        json.dump(json_data, json_file)
+        json.dump(json_data, json_file, indent=4)
     return 'Saved: ' + filename
 
 
