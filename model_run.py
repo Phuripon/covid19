@@ -9,7 +9,7 @@ def seir_estimation(params, initial_data, user_input, resource_consumption):
     hospital_market_share = float(user_input.get(
         'hospital_market_share', params['hospital_market_share']))
     seir_df = SEIR(params, initial_data, predict_step)
-    hos_load_df = transform_seir(seir_df, params,hospital_market_share)
+    hos_load_df = transform_seir(seir_df, params, hospital_market_share)
     resource_projection_df = project_resource(hos_load_df, resource_consumption)
 
     return seir_df, hos_load_df, resource_projection_df
@@ -50,19 +50,58 @@ def prepare_input(user_input):
     return user_input, default_params
 
 
+# model_input = {
+#     # ref situation
+#     'area': 'Songkhla',
+#     'doubling_time': 7.5,
+#     'total_confirm_cases': 37,
+#     'active_cases': 18,
+#     'critical_cases': 1,  # TODO: optional parameter now not effect
+#     'death': 0,
+#     'recent_cases': [37,37,37,37,34,29,26,24,23,22],
+#     # ref site
+#     'regional_population': 1435968,
+#     'hospital_market_share': 1,
+#     # predict period
+#     'start_date': pd.to_datetime('2020-04-07'),
+#     'steps': 100,
+#     # intervention
+#     'social_distancing': [0, 0, 1],
+# }
+
+# model_input = {
+#     # ref situation
+#     'area': 'Yala',
+#     'doubling_time': 7.5,
+#     'total_confirm_cases': 68,
+#     'active_cases': 40,
+#     'critical_cases': 1,  # TODO: optional parameter now not effect
+#     'death': 1,
+#     'recent_cases': [68,56,54,52,49,44,35,35,30,30,28,26],
+#     # ref site
+#     'regional_population': 536330,
+#     'hospital_market_share': 1,
+#     # predict period
+#     'start_date': pd.to_datetime('2020-04-07'),
+#     'steps': 100,
+#     # intervention
+#     'social_distancing': [0, 0, 1],
+# }
+
 model_input = {
     # ref situation
+    'area': 'R12',
     'doubling_time': 7.5,
-    'total_confirm_cases': 175,
-    'active_cases': 90,
-    'critical_cases': 23,  # TODO: optional parameter now not effect
+    'total_confirm_cases': 193,
+    'active_cases': 115,
+    'critical_cases': 4,
     'death': 4,
-    'recent_cases': [175, 163, 153, 141, 123, 114, 107, 106, 102, 91],
+    'recent_cases': [193,178,175,163,153,141,123,114,107,106],
     # ref site
     'regional_population': 4997037,
     'hospital_market_share': 1,
     # predict period
-    'start_date': pd.to_datetime('2020-04-05'),
+    'start_date': pd.to_datetime('2020-04-07'),
     'steps': 100,
     # intervention
     'social_distancing': [0, 0, 1],
@@ -92,4 +131,7 @@ if __name__ == '__main__':
     # Join with resource projection
     output_df = summary_df.merge(hos_load_df, left_on='date', right_on='date')
     output_df = output_df.merge(resource_df, left_on='date', right_on='date')
-    output_df.to_csv('./result/covid19_thai_resource_simulation_ah12.csv', encoding='utf-8') # TODO: add area nam + doubling time + ref date
+    last_date = model_input['start_date']
+    output_df.to_csv(
+        './result/covid19_thai_resource_simulation_%s_%s.csv' % (model_input['area'], last_date.strftime('%Y%m%d')),
+        encoding='utf-8')  # TODO: add area nam + doubling time + ref date

@@ -35,7 +35,7 @@ def get_default_params():
               'doubling_time': 7,
               'total_confirm_cases': 1,
               'active_cases': 1,
-              'critical_cases': 0,
+              'critical_cases': -1,
               'regional_population': 66000000,
               'death': 0,
               # Predict for
@@ -51,8 +51,10 @@ def gen_initial(params, user_input):
         'total_confirm_cases', params['total_confirm_cases']))
     regional_population = int(user_input.get(
         'regional_population', params['regional_population']))
-
     active_cases = int(user_input['active_cases'])
+    critical_cases = user_input.get('critical_cases')
+    if critical_cases < 0:
+        critical_cases = (params['p_critical'] + params['cfr']) * active_cases
     death = int(user_input.get(
         'death', params['death']))
 
@@ -64,8 +66,7 @@ def gen_initial(params, user_input):
     e = i * (growth + gamma) / sigma
     beta = (growth + gamma) * (growth + sigma) / sigma
     r0 = beta / gamma
-    s = regional_population - \
-        total_confirm_cases - pui - i - e
+    s = regional_population - total_confirm_cases - pui - i - e
 
     # update params
     params['r0'] = r0
@@ -73,19 +74,17 @@ def gen_initial(params, user_input):
     params['social_distancing_rate'] = user_input['social_distancing']
 
     # create initial data for start date
-    recover = total_confirm_cases - \
-              active_cases - death
+    recover = total_confirm_cases - active_cases - death
     initial_data = {
         'date': user_input['start_date'],
         's': s,
         'e': e,
         'i': i,
         'pui': pui,
-        # TODO: check this ตอนแรกเยอะเกินไปหรือเปล่า
-        'hos_mild': params['p_mild'] * active_cases,
-        'hos_severe': params['p_severe'] * active_cases,
-        'hos_critical': params['p_critical'] * active_cases,
-        'hos_fatal': params['cfr'] * active_cases,
+        'hos_mild': (active_cases - critical_cases) * params['p_mild'] / (params['p_mild'] + params['p_severe']),
+        'hos_severe': (active_cases - critical_cases) * params['p_severe'] / (params['p_mild'] + params['p_severe']),
+        'hos_critical': critical_cases * params['p_critical'] / (params['p_critical'] + params['cfr']),
+        'hos_fatal': critical_cases * params['cfr'] / (params['p_critical'] + params['cfr']),
         'home_mild': 0,
         'home_severe': 0,
         'hotel_mild': 0,
@@ -192,12 +191,10 @@ def get_differentials(params, sod, day=0):
     diff_hos_severe = (
             p_severe * (1 / d_test) * pui
             - p_severe_home * (1 / (los_hos_severe - los_home_severe)) * hos_severe
-            - p_severe_hotel *
-            (1 / (los_hos_severe - los_hotel_severe)) * hos_severe
+            - p_severe_hotel * (1 / (los_hos_severe - los_hotel_severe)) * hos_severe
             - (1 / los_hos_severe) * hos_severe
     )
-    diff_hos_critical = p_critical * \
-                        (1 / d_test) * pui - (1 / los_hos_critical) * hos_critical
+    diff_hos_critical = p_critical * (1 / d_test) * pui - (1 / los_hos_critical) * hos_critical
     diff_hos_fatal = p_fatal * (1 / d_test) * pui - (1 / d_death) * hos_fatal
     diff_home_mild = (
             p_mild_home * (1 / (los_hos_mild - los_home_mild)) * hos_mild
@@ -220,8 +217,7 @@ def get_differentials(params, sod, day=0):
     diff_r_mild_hotel = (1 / (los_hos_mild - los_hotel_mild)) * hotel_mild
     diff_r_severe_hos = (1 / los_hos_severe) * hos_severe
     diff_r_severe_home = (1 / (los_hos_severe - los_home_severe)) * home_severe
-    diff_r_severe_hotel = (
-                                  1 / (los_hos_severe - los_hotel_severe)) * hotel_severe
+    diff_r_severe_hotel = (1 / (los_hos_severe - los_hotel_severe)) * hotel_severe
     diff_r_critical = (1 / los_hos_critical) * hos_critical
     diff_death = (1 / d_death) * hos_fatal
 
@@ -277,4 +273,4 @@ def summarize_seir(seir_df):
 
 def recent_cases_to_doubling_time(recent_cases, period=0):
     if period == 0 or period > len(recent_cases): period = len(recent_cases)
-    return period * (np.log(2) / np.log(recent_cases[0] / recent_cases[period - 1]))
+    return (period - 1) * (np.log(2) / np.log(recent_cases[0] / recent_cases[period - 1]))

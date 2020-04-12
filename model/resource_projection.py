@@ -37,8 +37,8 @@ def get_resource_consumption():
         # (จำนวนชั่วโมงทำงาน*จำนวนบุคลากรในทีม)/จำนวนผู้ป่วยที่ดูแล
         'staff_nurse_aid_icu_per_pt': (24 * 1) / 2,
         # drug
-        'favipiravir_first_used': 8,
-        'faviriravir_census_used': 3,
+        'favipiravir_first_used': 16,
+        'faviriravir_census_used': 6,
 
     }
     return resource_consumption
