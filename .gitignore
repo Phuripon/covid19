@@ -1,3 +1,8 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
 # backup file
 /data/bk
 
@@ -14,6 +19,10 @@ lerna-debug.log*
 
 # OS
 .DS_Store
+~$*
+
+node_modules
+__pycache__
 
 # Tests
 /coverage
