@@ -1,5 +1,5 @@
 {
-    "UpdateDate": "06/04/2020 11:39",
+    "UpdateDate": "11/04/2020 11:37",
     "Source": "https://covid19.th-stat.com/",
     "DevBy": "https://www.kidkarnmai.com/",
     "SeverBy": "https://smilehost.asia/",
@@ -1070,6 +1070,61 @@
             "Recovered": 793,
             "Hospitalized": 1401,
             "Deaths": 26
+        },
+        {
+            "Date": "04/07/2020",
+            "NewConfirmed": 38,
+            "NewRecovered": 31,
+            "NewHospitalized": 6,
+            "NewDeaths": 1,
+            "Confirmed": 2258,
+            "Recovered": 824,
+            "Hospitalized": 1407,
+            "Deaths": 27
+        },
+        {
+            "Date": "04/08/2020",
+            "NewConfirmed": 111,
+            "NewRecovered": 64,
+            "NewHospitalized": 44,
+            "NewDeaths": 3,
+            "Confirmed": 2369,
+            "Recovered": 888,
+            "Hospitalized": 1451,
+            "Deaths": 30
+        },
+        {
+            "Date": "04/09/2020",
+            "NewConfirmed": 54,
+            "NewRecovered": 52,
+            "NewHospitalized": 0,
+            "NewDeaths": 2,
+            "Confirmed": 2423,
+            "Recovered": 940,
+            "Hospitalized": 1451,
+            "Deaths": 32
+        },
+        {
+            "Date": "04/10/2020",
+            "NewConfirmed": 50,
+            "NewRecovered": 73,
+            "NewHospitalized": -24,
+            "NewDeaths": 1,
+            "Confirmed": 2473,
+            "Recovered": 1013,
+            "Hospitalized": 1427,
+            "Deaths": 33
+        },
+        {
+            "Date": "04/11/2020",
+            "NewConfirmed": 45,
+            "NewRecovered": 122,
+            "NewHospitalized": -79,
+            "NewDeaths": 2,
+            "Confirmed": 2518,
+            "Recovered": 1135,
+            "Hospitalized": 1348,
+            "Deaths": 35
         }
     ]
 }

@@ -22,7 +22,8 @@ def convert_text_to_datetime(x):
     return datetime.strptime(x, '%Y-%m-%d %H:%M:%S')
 
 
-is_update = False
+var = input("Update Data from covid19.th-stat? (y/n):")
+is_update = (var == 'y')
 
 # update data from covid19.th-stat
 if is_update:
@@ -48,12 +49,16 @@ if is_update:
     # cases = update_th_cases(url_cases)
 
     # writing local data
-    last_data = datetime.strptime(cases['LastData'], '%Y-%m-%d %H:%M:%S')
-    last_date = last_data.strftime('%Y%m%d')
-    write_json(cases, '%s_covid19_th_cases.json' % last_date)
-    write_json(timeline, '%s_covid19_th_timeline.json' % last_date)
-    write_json(area, '%s_covid19_th_area.json' % last_date)
-    write_json(cases_sum, '%s_covid19_th_cases_sum.json' % last_date)
+    cases_last_data = datetime.strptime(cases['LastData'], '%Y-%m-%d %H:%M:%S')
+    cases_last_date = cases_last_data.strftime('%Y%m%d')
+    timeline_last_date = datetime.strptime(timeline['UpdateDate'], '%d/%m/%Y %H:%M').strftime('%Y%m%d')
+    area_last_date = datetime.strptime(area['LastData'], '%Y-%m-%d %H:%M:%S').strftime('%Y%m%d')
+    cases_sum_last_date = datetime.strptime(cases_sum['LastData'], '%Y-%m-%d %H:%M:%S').strftime('%Y%m%d')
+    write_json(cases, '%s_covid19_th_cases.json' % cases_last_date)
+    write_json(timeline, '%s_covid19_th_timeline.json' % timeline_last_date)
+    write_json(area, '%s_covid19_th_area.json' % area_last_date)
+    write_json(cases_sum, '%s_covid19_th_cases_sum.json' % cases_sum_last_date)
+    print('Updated %s Data from covid19.th-stat' % cases_last_date)
 
 else:
     # load local data
