@@ -50,6 +50,20 @@ def prepare_input(user_input):
     return user_input, default_params
 
 
+def model_run(model_input, params):
+    # Model and prediction
+    initial_data, params = gen_initial(params, model_input)
+    resource_consumption = get_resource_consumption()
+    seir_df, hos_load_df, resource_df = seir_estimation(params, initial_data, model_input, resource_consumption)
+    # Summarize SEIR
+    summary_df = summarize_seir(seir_df)
+    # Join with resource projection
+    output_df = summary_df.merge(hos_load_df, left_on='date', right_on='date')
+    output_df = output_df.merge(resource_df, left_on='date', right_on='date')
+
+    return output_df
+
+
 # model_input = {
 #     # ref situation
 #     'area': 'Songkhla',
@@ -96,7 +110,7 @@ model_input = {
     'active_cases': 115,
     'critical_cases': 4,
     'death': 4,
-    'recent_cases': [193,178,175,163,153,141,123,114,107,106],
+    'recent_cases': [193, 178, 175, 163, 153, 141, 123, 114, 107, 106],
     # ref site
     'regional_population': 4997037,
     'hospital_market_share': 1,
@@ -116,21 +130,43 @@ supply_level = {
     'drug_favipiravir': 235285,
 }
 
+intervention = [
+    {
+        'event': 'indonesia',
+        'start_date': pd.to_datetime('2020-04-07'),
+        'end_date': pd.to_datetime('2020-04-07'),
+        'import_per_day': {
+            's': 0,
+            'e': 0,
+            'i': 0,
+            'pui': 0,
+            'hos_mild': 0,
+            'hos_severe': 0,
+            'hos_critical': 0,
+            'hos_fatal': 0,
+            'home_mild': 0,
+            'home_severe': 0,
+            'hotel_mild': 0,
+            'hotel_severe': 0,
+            'r_mild_hos': 0,
+            'r_mild_home': 0,
+            'r_mild_hotel': 0,
+            'r_severe_hos': 0,
+            'r_severe_home': 0,
+            'r_severe_hotel': 0,
+            'r_critical_hos': 0,
+            'death': 0,
+        }
+    }
+]
+
 if __name__ == '__main__':
     # compute doubling time
     doubling_time = recent_cases_to_doubling_time(model_input['recent_cases'], period=7)
     print('Doubling Time: ', doubling_time)
     model_input['doubling_time'] = doubling_time
-    # Model and prediction
     params = get_default_params()
-    initial_data, params = gen_initial(params, model_input)
-    resource_consumption = get_resource_consumption()
-    seir_df, hos_load_df, resource_df = seir_estimation(params, initial_data, model_input, resource_consumption)
-    # Summarize SEIR
-    summary_df = summarize_seir(seir_df)
-    # Join with resource projection
-    output_df = summary_df.merge(hos_load_df, left_on='date', right_on='date')
-    output_df = output_df.merge(resource_df, left_on='date', right_on='date')
+    output_df = model_run(model_input, params)
     last_date = model_input['start_date']
     output_df.to_csv(
         './result/covid19_thai_resource_simulation_%s_%s.csv' % (model_input['area'], last_date.strftime('%Y%m%d')),
