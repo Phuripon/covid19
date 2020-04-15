@@ -37,6 +37,11 @@ df_world_cases = df_world_cases.merge(df_death, left_on=['Province/State', 'Coun
 df_world_cases = df_world_cases.groupby(['Country/Region', 'Date']).sum()
 df_world_cases = df_world_cases.reset_index()
 
+# filter only country over 1000 cases
+pivot_country_cases = pd.pivot_table(df_world_cases, values=['Confirmed'], index=['Country/Region'], aggfunc='max')
+country_filter = pivot_country_cases.index[pivot_country_cases['Confirmed'] > 1000].to_list()
+df_world_cases = df_world_cases[df_world_cases['Country/Region'].isin(country_filter)]
+
 # convert date string to datetime then sort
 df_world_cases['Date'] = df_world_cases['Date'].apply(convert_to_datetime)
 df_world_cases = df_world_cases.sort_values(by=['Country/Region', 'Date'])

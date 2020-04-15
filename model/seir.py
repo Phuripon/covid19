@@ -234,7 +234,6 @@ def get_differentials(params, sod, day=0):
             new_hos_mild, new_hos_severe, new_hos_critical, new_pui]
 
 
-
 def summarize_seir(seir_df):
     summary_df = pd.DataFrame()
     summary_df['date'] = seir_df['date']
@@ -271,6 +270,9 @@ def summarize_seir(seir_df):
     return summary_df
 
 
-def recent_cases_to_doubling_time(recent_cases, period=0):
+def recent_cases_to_doubling_time(recent_cases, period=0, default=7):
+    doubling_time = default
     if period == 0 or period > len(recent_cases): period = len(recent_cases)
-    return (period - 1) * (np.log(2) / np.log(recent_cases[0] / recent_cases[period - 1]))
+    if recent_cases[period - 1] > 0:
+        doubling_time = (period - 1) * (np.log(2) / np.log(recent_cases[0] / recent_cases[period - 1]))
+    return doubling_time
